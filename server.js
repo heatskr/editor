@@ -137,6 +137,29 @@ let app = express ()
   res.type ('text/css').end (content);
 })
 
+.get ('/:user/:name.css', async function (req, res, next) {
+  let app = await App.findOne ({
+    attributes: ['css', 'cssMode'],
+    where: {
+      name: req.params.name,
+      // UserId: req.session.user.id,
+    }
+  });
+  let content = app.css;
+  switch (app.cssMode) {
+    case 'text/x-styl' :
+      try {
+        content = Stylus.render (content);
+      } catch (error) {
+        // res.status (400).end (error.stack);
+        // return;
+        content = `/* ${error.stack} */`;
+      }
+      break;
+  }
+  res.type ('text/css').end (content);
+})
+
 .get ('/apps/:id.js', async function (req, res, next) {
   let app = await App.findOne ({
     attributes: ['js', 'jsMode'],
