@@ -37,8 +37,6 @@ requirejs ([
   'jquery',
   '/golden-layout/dist/goldenlayout.js',
 
-
-
   "codemirror",
   // comment
   "codemirror/addon/comment/comment",
@@ -97,35 +95,154 @@ requirejs ([
   'codemirror/mode/xml/xml',
   'codemirror/mode/htmlmixed/htmlmixed',
   'codemirror/mode/htmlembedded/htmlembedded',
+  'codemirror/mode/pug/pug',
+  'codemirror/mode/stylus/stylus',
+  'codemirror/mode/coffeescript/coffeescript',
 
 
   // keymap
   "codemirror/keymap/sublime",
 
-  'css!https://cdnjs.cloudflare.com/ajax/libs/golden-layout/1.5.9/css/goldenlayout-base.css',
-  'css!https://cdnjs.cloudflare.com/ajax/libs/golden-layout/1.5.9/css/goldenlayout-dark-theme.css',
+  // css
+
+  'css!/material-design-icons/iconfont/material-icons.css',
+
+  'css!/golden-layout/src/css/goldenlayout-base.css',
+  'css!/golden-layout/src/css/goldenlayout-dark-theme.css',
+  // 'css!/golden-layout/src/css/goldenlayout-light-theme.css',
+  // 'css!/golden-layout/src/css/goldenlayout-soda-theme.css',
+  // 'css!/golden-layout/src/css/goldenlayout-translucent-theme.css',
+
   'css!/codemirror/lib/codemirror.css',
+  'css!/codemirror/addon/dialog/dialog.css',
+  'css!/codemirror/addon/display/fullscreen.css',
+  'css!/codemirror/addon/fold/foldgutter.css',
+  'css!/codemirror/addon/hint/show-hint.css',
+  'css!/codemirror/addon/lint/lint.css',
+  'css!/codemirror/addon/merge/merge.css',
+  'css!/codemirror/addon/scroll/simplescrollbars.css',
+  'css!/codemirror/addon/search/matchesonscrollbar.css',
+  'css!/codemirror/addon/tern/tern.css',
+
   'css!/codemirror/theme/monokai.css',
+
   'css!/client.css',
 
 ], function (jQuery, GoldenLayout, CodeMirror) {
 
-let model = {
-  title: 'New App',
-  language: 'en',
-  charset: 'UTF-8',
-  html: '',
-  js: '',
-  css: '',
+let modes = {
+  html: [
+    { name: 'HTML', type: 'text/html' },
+    { name: 'Pug', type: 'text/x-pug' },
+  ],
+  js: [
+    { name: 'JavaScript', type: 'text/javascript' },
+    { name: 'CoffeeScript', type: 'text/coffeescript' },
+  ],
+  css: [
+    { name: 'CSS', type: 'text/css' },
+    { name: 'Stylus', type: 'text/x-styl' },
+  ],
 };
 
-var config = {
+function newModel () {
+  let dt = Date.now ();
+  return {
+    id: null,
+    name: `app-${dt}`,
+    title: `App ${dt}`,
+    language: 'en',
+    charset: 'UTF-8',
+    html: `// ${dt}\n`,
+    js: `# ${dt}\n`,
+    css: `// ${dt}\n`,
+    htmlMode: 'text/x-pug',
+    jsMode: 'text/coffeescript',
+    cssMode: 'text/x-styl',
+  };
+}
+
+let model = newModel ();
+
+function refreshApps () {
+  fetch ('/apps').then (res => res.json ()).then (data => {
+    let ul = jQuery ('.apps');
+    ul.html (null);
+    for (let app of data) {
+      let href = `/apps/${app.id}`;
+      let li = jQuery ('<li>');
+      let a;
+
+      a = jQuery (`<a href="${href}" class="del"><span class="material-icons">delete</span></a>`)
+      .click (async function (event) {
+        event.preventDefault ();
+        if (!confirm ()) {
+          return;
+        }
+        let res = await fetch (this.href, {
+          method: 'delete',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        });
+        if (res.ok) {
+          let app = await res.json ();
+          if (app.id == model.id) {
+            newPage ();
+          }
+          refreshApps ();
+        }
+      });
+      li.append (a);
+
+      a = jQuery ('<a>')
+      .attr ({ href })
+      .text (app.title)
+      .click (async function (event) {
+        event.preventDefault ();
+        let res = await fetch (this.href);
+        model = await res.json ();
+        loadPage ();
+      })
+      ;
+      li.append (a);
+
+      ul.append (li);
+    }
+
+    editors.name     = document.querySelector ('#nameEditor');
+    editors.title    = document.querySelector ('#titleEditor');
+    editors.language = document.querySelector ('#languageEditor');
+    editors.charset  = document.querySelector ('#charsetEditor');
+    editors.htmlMode = document.querySelector ('#htmlModeEditor');
+    editors.jsMode   = document.querySelector ('#jsModeEditor');
+    editors.cssMode  = document.querySelector ('#cssModeEditor');
+
+    editors.htmlMode.addEventListener ('change', (event) => {
+      editors.html.setOption ('mode', editors.htmlMode.value);
+    });
+
+    editors.jsMode.addEventListener ('change', (event) => {
+      editors.js.setOption ('mode', editors.jsMode.value);
+    });
+
+    editors.cssMode.addEventListener ('change', (event) => {
+      editors.css.setOption ('mode', editors.cssMode.value);
+    });
+  });
+};
+
+let defaultConfig = {
+  settings: {
+    showPopoutIcon:false,
+  },
   content: [
     {
       type: 'row',
       content: [
         {
-          title: 'Misc',
+          title: 'Settings',
           width: 20,
           isClosable: false,
           type: 'component',
@@ -144,21 +261,21 @@ var config = {
                   type: 'component',
                   componentName: 'htmlComponent',
                   componentState: { label: 'A' },
-                  title: 'HTML',
+                  title: 'Markup',
                   isClosable: false,
                 },
                 {
                   type: 'component',
                   componentName: 'jsComponent',
                   componentState: { label: 'C' },
-                  title: 'JavaScript',
+                  title: 'Script',
                   isClosable: false,
                 },
                 {
                   type: 'component',
                   componentName: 'cssComponent',
                   componentState: { label: 'D' },
-                  title: 'CSS',
+                  title: 'Style',
                   isClosable: false,
                 }
               ]
@@ -177,7 +294,19 @@ var config = {
   ]
 };
 
-var myLayout = new GoldenLayout( config );
+let config;
+
+if (sessionStorage.layout) {
+  config = JSON.parse (sessionStorage.layout);
+} else {
+  config = Object.assign ({}, defaultConfig);
+}
+
+addEventListener ('beforeunload', function () {
+  sessionStorage.layout = JSON.stringify (myLayout.toConfig ());
+});
+
+window.myLayout = new GoldenLayout( config );
 
 var editors = {};
 
@@ -186,7 +315,7 @@ myLayout.registerComponent ('htmlComponent', function (container, componentState
 
   requestAnimationFrame (() => {
     editors.html = CodeMirror.fromTextArea (document.querySelector ('#htmlEditor'), {
-      mode: 'text/html',
+      mode: model.htmlMode,
       value: model.html,
     });
   });
@@ -198,7 +327,7 @@ myLayout.registerComponent ('jsComponent', function (container, componentState) 
 
   requestAnimationFrame (() => {
     editors.js = CodeMirror.fromTextArea (document.querySelector ('#jsEditor'), {
-      mode: 'text/javascript',
+      mode: model.jsMode,
       value: model.js,
     });
   });
@@ -210,7 +339,7 @@ myLayout.registerComponent ('cssComponent', function (container, componentState)
 
   requestAnimationFrame (() => {
     editors.css = CodeMirror.fromTextArea (document.querySelector ('#cssEditor'), {
-      mode: 'text/css',
+      mode: model.cssMode,
       value: model.css
     });
   });
@@ -223,14 +352,33 @@ myLayout.registerComponent ('previewComponent', function (container, componentSt
 });
 
 myLayout.registerComponent ('testComponent', function (container, componentState) {
+  container.getElement ().html (`
 
-  fetch ('/apps').then (res => res.json ()).then (data => {
-    let e = container.getElement ();
+<div class="actions">
+  <button id="btnRun" title="Run">
+    <span class="material-icons">play_arrow</span>
+  </button>
+  <button id="btnSave" title="save">
+    <span class="material-icons">save</span>
+  </button>
+  <button id="btnView" title="View">
+    <span class="material-icons">pageview</span>
+  </button>
+  <button id="btnNew" title="New">
+    <span class="material-icons">note_add</span>
+  </button>
+  <label>
+    <input type="checkbox"/> Auto
+  </label>
+</div>
 
-    e.html (`
 <fieldset class="form">
 <legend>Settings</legend>
 <table>
+<tr>
+<td>Name</td>
+<td><input id="nameEditor" value="${model.name}"/></td>
+</tr>
 <tr>
 <td>Title</td>
 <td><input id="titleEditor" value="${model.title}"/></td>
@@ -243,79 +391,90 @@ myLayout.registerComponent ('testComponent', function (container, componentState
 <td>Charset</td>
 <td><input id="charsetEditor" value="${model.charset}"/></td>
 </tr>
+</table>
+</fieldset>
+
+<fieldset class="form">
+<legend>Mode</legend>
+<table>
+<tr>
+<td>Markup</td>
+<td><select id="htmlModeEditor">
+<option value="text/html">HTML</option>
+<option value="text/x-pug">Pug</option>
+</select></td>
+</tr>
+<tr>
+<td>Script</td>
+<td><select id="jsModeEditor">
+<option value="text/javascript">JavaScript</option>
+<option value="text/coffeescript">CoffeeScript</option>
+</select></td>
+</tr>
+<tr>
+<td>Style</td>
+<td><select id="cssModeEditor">
+<option value="text/css">CSS</option>
+<option value="text/x-styl">Stylus</option>
+</select></td>
 </tr>
 </table>
 </fieldset>
 
-<p>
-  <button>New</button>
-  <button>Save</button>
-  <button>Run</button>
-  <button>View</button>
-  <input type="checkbox"/> Auto
-</p>
+<ul class="apps"></ul>
 
 `);
 
+  refreshApps ();
 
+  requestAnimationFrame (function () {
+    jQuery ('#btnRun').click ((event) => {
+      previewPage ();
+    });
 
-    let ul = jQuery ('<ul class="apps">');
-    for (let app of data) {
-      let li = jQuery ('<li>');
-      let a;
+    jQuery ('#btnSave').click ((event) => {
+      savePage ();
+    });
 
-      a = jQuery ('<button>X</button>');
-      li.append (a);
+    jQuery ('#btnView').click ((event) => {
+      openPage ();
+    });
 
-      a = jQuery ('<a>').attr ({
-        href: `/apps/${app.id}`,
-      })
-      .text (app.title)
-      .click (async function (event) {
-        event.preventDefault ();
-        let res = await fetch (this.href);
-        let app = await res.json ();
-
-        model = app;
-
-        editors.title.value = app.title;
-        editors.language.value = app.language;
-        editors.charset.value = app.charset;
-
-        let htmlDoc = new CodeMirror.Doc (app.html, 'text/html');
-        editors.html.swapDoc (htmlDoc);
-
-        let jsDoc = new CodeMirror.Doc (app.js, 'text/javascript');
-        editors.js.swapDoc (jsDoc);
-
-        let cssDoc = new CodeMirror.Doc (app.css, 'text/css');
-        editors.css.swapDoc (cssDoc);
-      })
-      ;
-      li.append (a);
-
-      ul.append (li);
-    }
-
-    e.append (ul);
-
-    editors.title    = document.querySelector ('#titleEditor');
-    editors.language = document.querySelector ('#languageEditor');
-    editors.charset  = document.querySelector ('#charsetEditor');
+    jQuery ('#btnNew').click ((event) => {
+      newPage ();
+    });
   });
 
 });
 
-CodeMirror.commands.save = function (cm) {
+function previewPage () {
+  if (!model.id) {
+    return;
+  }
+  previewFrame.src = `/apps/${model.id}.html`;
+}
+
+function openPage () {
+  if (!model.id) {
+    return;
+  }
+  open (`/apps/${model.id}.html`);
+}
+
+function savePage () {
   let preview = document.querySelector ('#previewFrame');
   let doc = preview.contentWindow.document;
 
+  model.name = editors.name.value;
   model.title = editors.title.value;
   model.language = editors.language.value;
   model.charset = editors.charset.value;
   model.html = editors.html.getValue ();
   model.js = editors.js.getValue ();
   model.css = editors.css.getValue ();
+  model.htmlMode = editors.htmlMode.value;
+  model.jsMode = editors.jsMode.value;
+  model.cssMode = editors.cssMode.value;
 
   if (model.id) {
     fetch (`/apps/${model.id}`, {
@@ -331,7 +490,17 @@ CodeMirror.commands.save = function (cm) {
       if (res.ok) {
         res.json ().then (app => {
           model = app;
-        })
+          refreshApps ();
+          previewPage ();
+        });
+      } else {
+        switch (res.status) {
+          case 422 :
+            res.text ().then (error => {
+              console.log (error);
+            });
+            break;
+        }
       }
     });
   } else {
@@ -348,37 +517,41 @@ CodeMirror.commands.save = function (cm) {
       if (res.ok) {
         res.json ().then (app => {
           model = app;
+          refreshApps ();
+          previewPage ();
         })
       }
     });
   }
+}
 
-  let tpl = `
-<!DOCTYPE html>
-<html lang="${model.language}">
-<head>
-<meta charset="${model.charset}"/>
-<title>${model.title}</title>
-<style>
-${model.css}
-</style>
-</head>
-<body>
-${model.html}
-<script type="module">
-${model.js}
-</script>
-</body>
-</html>
-`;
+function newPage () {
+  model = newModel ();
+  loadPage ();
+}
 
-  doc.open ();
-  try {
-    doc.write (tpl);
-  } catch (error) {
-    doc.write (errors.stack);
-  }
-  doc.close ();
+function loadPage () {
+  editors.name.value = model.name;
+  editors.title.value = model.title;
+  editors.language.value = model.language;
+  editors.charset.value = model.charset;
+
+  let htmlDoc = new CodeMirror.Doc (model.html, model.htmlMode);
+  editors.html.swapDoc (htmlDoc);
+
+  let jsDoc = new CodeMirror.Doc (model.js, model.jsMode);
+  editors.js.swapDoc (jsDoc);
+
+  let cssDoc = new CodeMirror.Doc (model.css, model.cssMode);
+  editors.css.swapDoc (cssDoc);
+
+  editors.htmlMode.value = model.htmlMode;
+  editors.jsMode.value = model.jsMode;
+  editors.cssMode.value = model.cssMode;
+}
+
+CodeMirror.commands.save = function (cm) {
+  savePage ();
 };
 
 Object.assign (CodeMirror.defaults, {
@@ -397,13 +570,15 @@ Object.assign (CodeMirror.defaults, {
   theme: "monokai", // "wk",
   showCursorWhenSelecting: true,
   showTrailingSpace: true,
-  // lineWrapping: true,
-  foldGutter: true,
   // fullScreen: true,
-  viewportMargin: Infinity,
+  foldGutter: true,
+  lineWrapping: true,
   gutters: [
-    "CodeMirror-linenumbers", "CodeMirror-foldgutter", "breakpoints"
+    "CodeMirror-linenumbers",
+    "CodeMirror-foldgutter",
+    "breakpoints"
   ],
+  viewportMargin: Infinity,
   rulers: [
     { color: "#808080", column: 80 }
   ],
@@ -439,7 +614,60 @@ myLayout.init ();
 
 
 
+// var App = Blocks.Application ();
 
+// var Page = App.Model({
+//   name: App.Property(),
+
+//   editing: blocks.observable(false),
+
+//   toggleEdit: function () {
+//     this.editing(!this.editing());
+//   },
+
+//   remove: function () {
+//     this.destroy(true);
+//   }
+// });
+
+// var Pages = App.Collection(Page);
+
+// App.View ('Pages', {
+//   newPage: Page (),
+
+//   pages: Pages ([
+//     { name: 'HTML' },
+//     { name: 'CSS' },
+//     { name: 'JavaScript' }
+//   ]),
+
+//   keydown (e) {
+//     if (e.which == 13) {
+//       this.pages.add (this.newPage);
+//       this.newPage.reset ();
+//     }
+//   }
+// });
+
+//   <div id="products" data-query="view(Products)">
+//     <input data-query="val(newProduct.name).keydown(keydown)" placeholder="Add new value and press enter">
+//     <div data-query="each(products)">
+//       <div class="result-wrap">
+//         <span data-query="visible(!editing())" class="value-holder">
+//           {{name}}
+//         </span>
+//         <span data-query="visible(editing)" class="value-holder">
+//           <input data-query="val(name)">
+//         </span>
+//         <span class="buttons-holder">
+//             <span data-query="click(toggleEdit)">
+//               {{editing() ? 'Update' : 'Edit'}}
+//             </span>
+//             <span data-query="click(remove)" class="btn-delete">Delete</span>
+//         </span>
+//       </div>
+//     </div>
+//   </div>
 
 
 

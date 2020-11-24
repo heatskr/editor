@@ -1,3 +1,17 @@
+.material-icons {
+  font-size: 16px;
+}
+
+button,
+.actions,
+.form,
+.form input,
+.apps a,
+.material-icons
+{
+  color: #dddddd;
+}
+
 iframe#previewFrame {
   border: none;
   width: 100%;
@@ -15,20 +29,34 @@ iframe#previewFrame {
 }
 .CodeMirror-overlayscroll-horizontal div,
 .CodeMirror-overlayscroll-vertical div {
-  position: absolute;
-  background: #ff00ff;
-  border-radius: 3px;
+  /*position: absolute;*/
+  background: #444444;
+  /*border-radius: 3px;*/
 }
 
-.form {
-  color: #ffffff;
-}
 .form table {
   width: 100%;
 }
+
+.actions {
+  padding: 8px;
+}
+
+button {
+  background-color: #151515;
+  border: 1px solid #808080;
+  border: none;
+  padding: 2px;
+  border-radius: 4px;
+}
+
 .form input {
-  color: #ffffff;
   background-color: transparent;
+  border: 1px solid #808080;
+  width: 100%;
+  box-sizing: border-box;
+}
+.form select {
   border: 1px solid #808080;
   width: 100%;
   box-sizing: border-box;
@@ -43,9 +71,8 @@ iframe#previewFrame {
 }
 .apps a {
   text-decoration: none;
-  color: #ffffff;
 }
-.apps button {
+.apps .del {
   float: right;
   font-size: xx-small;
 }

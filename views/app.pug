@@ -1,0 +1,10 @@
+doctype
+html(lang=app.lang)
+  head
+    meta(charset=app.charset)
+    title #{app.title}
+    link(type="text/css" rel="stylesheet" href=`/apps/${id}.css`)
+  body
+    != content
+    div
+      script(type="module" src=`/apps/${id}.js`)
