@@ -57,6 +57,21 @@ class App extends Sequelize.Model
     return content;
   }
 
+  renderPreview () {
+    return `<!DOCTYPE html>
+    <html lang="${this.language}">
+    <head>
+      <meta charset="${this.charset}"/>
+      <title>${this.title}</title>
+      <style>${this.compileCSS ()}</style>
+    </head>
+    <body>
+      ${this.compileHTML ()}
+      <script type="module">${this.compileJS ()}</script>
+    </body>
+    </html>`;
+  }
+
 };
 
 App.init ({
@@ -125,6 +140,11 @@ let app = express ()
   } catch (error) {
     res.status (422).json (error);
   }
+})
+
+.post ('/apps/preview', async function (req, res, next) {
+  let app = App.build (req.body.app);
+  res.end (app.renderPreview ());
 })
 
 .get ('/apps/:id.html', async function (req, res, next) {
