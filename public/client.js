@@ -476,6 +476,7 @@ function previewPage () {
   if (!model.id) {
     return;
   }
+  console.clear ();
   previewFrame.src = `/apps/${model.id}.html`;
 }
 
