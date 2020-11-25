@@ -15,6 +15,48 @@ const db = new Sequelize ('sqlite://data.sqlite3', {
 class App extends Sequelize.Model
 {
 
+  compileCSS () {
+    let content = this.css;
+    switch (this.cssMode) {
+      case 'text/x-styl' :
+        try {
+          content = Stylus.render (content);
+        } catch (error) {
+          content = `/* ${error.stack} */`;
+        }
+        break;
+    }
+    return content;
+  }
+
+  compileJS () {
+    let content = this.js;
+    switch (this.jsMode) {
+      case 'text/coffeescript' :
+        try {
+          content = CoffeeScript.compile (content);
+        } catch (error) {
+          content = `console.error (${JSON.stringify (error.stack)})`;
+        }
+        break;
+    }
+    return content;
+  }
+
+  compileHTML () {
+    let content = this.html;
+    switch (this.htmlMode) {
+      case 'text/x-pug' :
+        try {
+          content = Pug.render (content);
+        } catch (error) {
+          content = JSON.strigify (error.stack);
+        }
+        break;
+    }
+    return content;
+  }
+
 };
 
 App.init ({
@@ -100,18 +142,7 @@ let app = express ()
       // UserId: req.session.user.id,
     }
   });
-  let content = app.html;
-  switch (app.htmlMode) {
-    case 'text/x-pug' :
-      try {
-        content = Pug.render (content);
-      } catch (error) {
-        res.status (400).end ();
-        return;
-      }
-      break;
-  }
-  res.render ('app', { app, id, content });
+  res.render ('app', { app, id, content: app.compileHTML() });
 })
 
 .get ('/apps/:id.css', async function (req, res, next) {
@@ -122,19 +153,7 @@ let app = express ()
       // UserId: req.session.user.id,
     }
   });
-  let content = app.css;
-  switch (app.cssMode) {
-    case 'text/x-styl' :
-      try {
-        content = Stylus.render (content);
-      } catch (error) {
-        // res.status (400).end (error.stack);
-        // return;
-        content = `/* ${error.stack} */`;
-      }
-      break;
-  }
-  res.type ('text/css').end (content);
+  res.type ('text/css').end (app.compileCSS ());
 })
 
 .get ('/:user/:name.css', async function (req, res, next) {
@@ -145,19 +164,7 @@ let app = express ()
       // UserId: req.session.user.id,
     }
   });
-  let content = app.css;
-  switch (app.cssMode) {
-    case 'text/x-styl' :
-      try {
-        content = Stylus.render (content);
-      } catch (error) {
-        // res.status (400).end (error.stack);
-        // return;
-        content = `/* ${error.stack} */`;
-      }
-      break;
-  }
-  res.type ('text/css').end (content);
+  res.type ('text/css').end (app.compileCSS ());
 })
 
 .get ('/apps/:id.js', async function (req, res, next) {
@@ -168,17 +175,7 @@ let app = express ()
       // UserId: req.session.user.id,
     }
   });
-  let content = app.js;
-  switch (app.jsMode) {
-    case 'text/coffeescript' :
-      try {
-        content = CoffeeScript.compile (content);
-      } catch (error) {
-        content = `console.error (${JSON.stringify (error.stack)})`;
-      }
-      break;
-  }
-  res.type ('text/javascript').end (content);
+  res.type ('text/javascript').end (app.compileJS ());
 })
 
 .get ('/:user/:name.js', async function (req, res, next) {
@@ -193,17 +190,7 @@ let app = express ()
     res.sendStatus (404);
     return;
   }
-  let content = app.js;
-  switch (app.jsMode) {
-    case 'text/coffeescript' :
-      try {
-        content = CoffeeScript.compile (content);
-      } catch (error) {
-        content = `console.error (${JSON.stringify (error.stack)})`;
-      }
-      break;
-  }
-  res.type ('text/javascript').end (content);
+  res.type ('text/javascript').end (app.compileJS ());
 })
 
 
@@ -225,15 +212,9 @@ let app = express ()
     }
   });
   try {
-    if (req.body.app.htmlMode == 'text/x-pug') {
-      Pug.render (req.body.app.html);
-    }
-    if (req.body.app.jsMode == 'text/coffeescript') {
-      CoffeeScript.compile (req.body.app.js);
-    }
-    if (req.body.app.cssMode == 'text/x-styl') {
-      Stylus.render (req.body.app.css);
-    }
+    app.compileHTML ();
+    app.compileJS ();
+    app.compileCSS ();
     await app.update (req.body.app);
     res.json (app);
   } catch (error) {
@@ -253,8 +234,6 @@ let app = express ()
 })
 
 ;
-
-
 
 db.sync ().then (() => {
   app.listen (process.env.PORT || 5000);
