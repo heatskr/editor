@@ -35,6 +35,7 @@ requirejs.config ({
 
 requirejs ([
   'jquery',
+
   '/golden-layout/dist/goldenlayout.js',
 
   "codemirror",
@@ -127,7 +128,6 @@ requirejs ([
   'css!/codemirror/theme/monokai.css',
 
   'css!/client.css',
-
 ], function (jQuery, GoldenLayout, CodeMirror) {
 
 let modes = {
@@ -572,7 +572,7 @@ Object.assign (CodeMirror.defaults, {
   showTrailingSpace: true,
   // fullScreen: true,
   foldGutter: true,
-  lineWrapping: true,
+  lineWrapping: false,
   gutters: [
     "CodeMirror-linenumbers",
     "CodeMirror-foldgutter",
