@@ -50,7 +50,7 @@ class App extends Sequelize.Model
         try {
           content = Pug.render (content);
         } catch (error) {
-          content = JSON.strigify (error.stack);
+          content = `<pre>${error.stack}</pre>`;
         }
         break;
     }
