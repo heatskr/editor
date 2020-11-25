@@ -173,7 +173,17 @@ function refreshApps () {
       let li = jQuery ('<li>');
       let a;
 
-      a = jQuery (`<a href="${href}" class="del"><span class="material-icons">delete</span></a>`)
+      let act = jQuery (`<div class="act"></div>`);
+      li.append (act);
+
+      a = jQuery (`<a href="${href}"><span class="material-icons">pageview</span></a>`)
+      .click (function (event) {
+        event.preventDefault ();
+        open (`${this.href}.html`);
+      });
+      act.append (a);
+
+      a = jQuery (`<a href="${href}"><span class="material-icons">delete</span></a>`)
       .click (async function (event) {
         event.preventDefault ();
         if (!confirm ()) {
@@ -194,7 +204,7 @@ function refreshApps () {
           refreshApps ();
         }
       });
-      li.append (a);
+      act.append (a);
 
       a = jQuery ('<a>')
       .attr ({ href })
@@ -242,14 +252,28 @@ let defaultConfig = {
       type: 'row',
       content: [
         {
-          title: 'Settings',
+          type: 'column',
           width: 20,
-          isClosable: false,
-          type: 'component',
-          componentName: 'testComponent',
-          componentState: {
-            label: 'A',
-          },
+          content: [
+            {
+              title: 'Settings',
+              isClosable: false,
+              type: 'component',
+              componentName: 'settingsComponent',
+              componentState: {
+                label: 'A',
+              },
+            },
+            {
+              title: 'Library',
+              isClosable: false,
+              type: 'component',
+              componentName: 'libraryComponent',
+              componentState: {
+                label: 'A',
+              },
+            },
+          ]
         },
         {
           type: 'column',
@@ -351,7 +375,12 @@ myLayout.registerComponent ('previewComponent', function (container, componentSt
   container.getElement ().html ('<iframe id="previewFrame"></iframe>');
 });
 
-myLayout.registerComponent ('testComponent', function (container, componentState) {
+myLayout.registerComponent ('libraryComponent', function (container, componentState) {
+  container.getElement ().html (`<ul class="apps"></ul>`);
+  refreshApps ();
+});
+
+myLayout.registerComponent ('settingsComponent', function (container, componentState) {
   container.getElement ().html (`
 
 <div class="actions">
@@ -421,11 +450,7 @@ myLayout.registerComponent ('testComponent', function (container, componentState
 </table>
 </fieldset>
 
-<ul class="apps"></ul>
-
 `);
-
-  refreshApps ();
 
   requestAnimationFrame (function () {
     jQuery ('#btnRun').click ((event) => {
