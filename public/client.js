@@ -472,12 +472,25 @@ myLayout.registerComponent ('settingsComponent', function (container, componentS
 
 });
 
-function previewPage () {
-  if (!model.id) {
-    return;
-  }
+async function previewPage () {
   console.clear ();
-  previewFrame.src = `/apps/${model.id}.html`;
+  loadModel ();
+
+  let res = await fetch ('/apps/preview', {
+    method: 'post',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify ({ app: model })
+  });
+  let text = await res.text ();
+
+  let preview = document.querySelector ('#previewFrame');
+  let doc = preview.contentWindow.document;
+  doc.open ();
+  doc.write (text);
+  doc.close ();
 }
 
 function openPage () {
@@ -487,10 +500,7 @@ function openPage () {
   open (`/apps/${model.id}.html`);
 }
 
-function savePage () {
-  let preview = document.querySelector ('#previewFrame');
-  let doc = preview.contentWindow.document;
-
+function loadModel () {
   model.name = editors.name.value;
   model.title = editors.title.value;
   model.language = editors.language.value;
@@ -501,6 +511,10 @@ function savePage () {
   model.htmlMode = editors.htmlMode.value;
   model.jsMode = editors.jsMode.value;
   model.cssMode = editors.cssMode.value;
+}
+
+function savePage () {
+  loadModel ();
 
   if (model.id) {
     fetch (`/apps/${model.id}`, {
@@ -631,74 +645,5 @@ Object.assign (CodeMirror.defaults, {
 });
 
 myLayout.init ();
-
-
-
-
-
-
-
-
-
-// var App = Blocks.Application ();
-
-// var Page = App.Model({
-//   name: App.Property(),
-
-//   editing: blocks.observable(false),
-
-//   toggleEdit: function () {
-//     this.editing(!this.editing());
-//   },
-
-//   remove: function () {
-//     this.destroy(true);
-//   }
-// });
-
-// var Pages = App.Collection(Page);
-
-// App.View ('Pages', {
-//   newPage: Page (),
-
-//   pages: Pages ([
-//     { name: 'HTML' },
-//     { name: 'CSS' },
-//     { name: 'JavaScript' }
-//   ]),
-
-//   keydown (e) {
-//     if (e.which == 13) {
-//       this.pages.add (this.newPage);
-//       this.newPage.reset ();
-//     }
-//   }
-// });
-
-//   <div id="products" data-query="view(Products)">
-//     <input data-query="val(newProduct.name).keydown(keydown)" placeholder="Add new value and press enter">
-//     <div data-query="each(products)">
-//       <div class="result-wrap">
-//         <span data-query="visible(!editing())" class="value-holder">
-//           {{name}}
-//         </span>
-//         <span data-query="visible(editing)" class="value-holder">
-//           <input data-query="val(name)">
-//         </span>
-//         <span class="buttons-holder">
-//             <span data-query="click(toggleEdit)">
-//               {{editing() ? 'Update' : 'Edit'}}
-//             </span>
-//             <span data-query="click(remove)" class="btn-delete">Delete</span>
-//         </span>
-//       </div>
-//     </div>
-//   </div>
-
-
-
-
-
-
 
 })
