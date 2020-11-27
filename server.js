@@ -175,6 +175,10 @@ let app = express ()
 .use (express.static ('public'))
 .use (express.static ('node_modules'))
 
+.get ('/', async function (req, res, next) {
+  res.render ('editor');
+})
+
 .get ('/apps', async function (req, res, next) {
   let apps = await App.findAll ();
   res.json (apps);
