@@ -36,6 +36,28 @@ const db = new Sequelize ('sqlite://data.sqlite3', {
 class App extends Sequelize.Model
 {
 
+  get scriptURL () {
+    return `/apps/${this.id}.js`;
+  }
+
+  get styleURL () {
+    return `/apps/${this.id}.css`;
+  }
+
+  get styleTag () {
+    if (this.isNewRecord) {
+      return `<style type="text/css">${this.compileCSS ()}</style>`;
+    }
+    return `<link type="text/css" rel="stylesheet" href="${this.styleURL}"/>`;
+  }
+
+  get scriptTag () {
+    if (this.isNewRecord) {
+      return `<script type="module">${this.compileJS ()}</script>`;
+    }
+    return `<script type="module" src="${this.scriptURL}"></script>`;
+  }
+
   compileCSS () {
     let content = this.css;
     switch (this.cssMode) {
@@ -81,17 +103,18 @@ class App extends Sequelize.Model
     return content;
   }
 
-  renderPreview () {
+  render () {
     return `<!DOCTYPE html>
     <html lang="${this.language}">
     <head>
       <meta charset="${this.charset}"/>
       <title>${this.title}</title>
-      <style>${this.compileCSS ()}</style>
+      <script src="/requirejs/require.js"></script>
+      ${this.styleTag}
     </head>
     <body>
       ${this.compileHTML ()}
-      <script type="module">${this.compileJS ()}</script>
+      ${this.scriptTag}
     </body>
     </html>`;
   }
@@ -168,13 +191,13 @@ let app = express ()
 
 .post ('/apps/preview', async function (req, res, next) {
   let app = App.build (req.body.app);
-  res.end (app.renderPreview ());
+  res.end (app.render ());
 })
 
 .get ('/apps/:id.html', async function (req, res, next) {
-  let id = req.params.id;
   let app = await App.findOne ({
     attributes: [
+      'id',
       'language',
       'charset',
       'title',
@@ -182,11 +205,11 @@ let app = express ()
       'htmlMode',
     ],
     where: {
-      id,
+      id: req.params.id,
       // UserId: req.session.user.id,
     }
   });
-  res.render ('app', { app, id, content: app.compileHTML() });
+  res.end (app.render ());
 })
 
 .get ('/apps/:id.css', async function (req, res, next) {
