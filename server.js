@@ -1,6 +1,27 @@
 const express = require ("express");
 const Sequelize = require ('sequelize');
 const Pug = require ('pug');
+const hljs = require ('highlight.js');
+const MarkdownIt = require ('markdown-it') ({
+  html: false,
+  xhtmlOut: true,
+  breaks: false,
+  linkify: true,
+  typographer: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage (lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+               hljs.highlight (lang, str, true).value +
+               '</code></pre>';
+      } catch (__) {}
+    }
+    return '<pre class="hljs"><code>' + MarkdownIt.utils.escapeHtml(str) + '</code></pre>';
+  }
+})
+.use (require ('markdown-it-deflist'))
+.use (require ('markdown-it-footnote'))
+;
 const CoffeeScript = require ('coffeescript');
 const Stylus = require ('stylus');
 
@@ -45,14 +66,17 @@ class App extends Sequelize.Model
 
   compileHTML () {
     let content = this.html;
-    switch (this.htmlMode) {
-      case 'text/x-pug' :
-        try {
+    try {
+      switch (this.htmlMode) {
+        case 'text/x-pug' :
           content = Pug.render (content);
-        } catch (error) {
-          content = `<pre>${error.stack}</pre>`;
-        }
-        break;
+          break;
+        case 'text/markdown' :
+          content = `<article class="markdown-body">${MarkdownIt.render (content)}</article>`;
+          break;
+      }
+    } catch (error) {
+      content = `<pre>${error.stack}</pre>`;
     }
     return content;
   }

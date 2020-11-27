@@ -431,6 +431,7 @@ myLayout.registerComponent ('settingsComponent', function (container, componentS
 <td><select id="htmlModeEditor">
 <option value="text/html">HTML</option>
 <option value="text/x-pug">Pug</option>
+<option value="text/markdown">Markdown</option>
 </select></td>
 </tr>
 <tr>
