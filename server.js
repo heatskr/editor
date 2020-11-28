@@ -290,8 +290,8 @@ let app = express ()
 .use (ExpressSession ({
   store: new FileStore ({}),
   secret: process.env.SESSION_SECRET,
-  // resave: true,
-  // saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   // cookie: { secure: true }
 }))
 
