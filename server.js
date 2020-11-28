@@ -30,7 +30,7 @@ const MarkdownIt = require ('markdown-it') ({
 const CoffeeScript = require ('coffeescript');
 const Stylus = require ('stylus');
 
-const { STRING, INTEGER, DECIMAL, DATE } = Sequelize.DataTypes;
+const { STRING, TEXT, INTEGER, DECIMAL, DATE } = Sequelize.DataTypes;
 
 const db = new Sequelize (process.env.DATABASE_URL, {
   define: {
@@ -59,16 +59,34 @@ class App extends Sequelize.Model
 
   get styleTag () {
     if (this.isNewRecord) {
-      return `<style type="text/css">${this.compileCSS ()}</style>`;
+      return `<style type="${this.cssType}">${this.compileCSS ()}</style>`;
     }
-    return `<link type="text/css" rel="stylesheet" href="${this.styleURL}"/>`;
+    return `<link type="${this.cssType}" rel="stylesheet" href="${this.styleURL}"/>`;
   }
 
   get scriptTag () {
     if (this.isNewRecord) {
-      return `<script type="module">${this.compileJS ()}</script>`;
+      return `<script type="${this.jsType}">${this.compileJS ()}</script>`;
     }
-    return `<script type="module" src="${this.scriptURL}"></script>`;
+    return `<script type="${this.jsType}" src="${this.scriptURL}"></script>`;
+  }
+
+  get styleTags () {
+    return this.links.trim ()
+      .split (/\s+/)
+      .filter ((l) => l)
+      .map ((l) => `<link rel="stylesheet" type="text/css" href="${l}"/>`)
+      .concat (this.styleTag)
+      .join ('');
+  }
+
+  get scriptTags () {
+    return this.scripts.trim ()
+      .split (/\s+/)
+      .filter ((s) => s)
+      .map ((s) => `<script type="text/javascript" src="${s}">${'<'}/script>`)
+      .concat (this.scriptTag)
+      .join ('');
   }
 
   compileCSS () {
@@ -107,7 +125,8 @@ class App extends Sequelize.Model
           content = Pug.render (content);
           break;
         case 'text/markdown' :
-          content = `<article class="markdown-body">${MarkdownIt.render (content)}</article>`;
+          content = MarkdownIt.render (content);
+          content = `<article class="markdown-body">${content}</article>`;
           break;
       }
     } catch (error) {
@@ -122,16 +141,25 @@ class App extends Sequelize.Model
     <head>
       <meta charset="${this.charset}"/>
       <title>${this.title}</title>
-      ${this.styleTag}
-      <script type="text/javascript" src="/requirejs/require.js"></script>
+      <meta name="author" content="${this.author}"/>
+      <meta name="description" content="${this.description}"/>
+      <meta name="keywords" content="${this.keywords}"/>
+      <meta name="viewport" content="${this.viewport}"/>
+      ${this.styleTags}
     </head>
-    <body>
+    <body class="${this.bodyClass}">
       ${this.compileHTML ()}
-      ${this.scriptTag}
+      ${this.scriptTags}
     </body>
     </html>`;
   }
 
+  get author () {
+    if (this.User) {
+      return `${this.User.firstName} ${this.User.lastName}`;
+    }
+    return '';
+  }
 };
 
 User.init ({
@@ -169,16 +197,37 @@ App.init ({
   },
   'title': {
     type: STRING,
-    allowNull: true,
+    allowNull: false,
+  },
+  'description': {
+    type: TEXT,
+    allowNull: false,
+    defaultValue: '',
+  },
+  'keywords': {
+    type: TEXT,
+    allowNull: false,
+    defaultValue: '',
   },
   'language': {
     type: STRING,
-    allowNull: true,
+    allowNull: false,
+    defaultValue: 'en',
   },
   'charset': {
     type: STRING,
     allowNull: false,
-    default: 'UFT-8',
+    defaultValue: 'UFT-8',
+  },
+  'viewport': {
+    type: STRING,
+    allowNull: false,
+    defaultValue: '',
+  },
+  'bodyClass': {
+    type: STRING,
+    allowNull: false,
+    defaultValue: '',
   },
   'html': {
     type: STRING,
@@ -187,7 +236,7 @@ App.init ({
   'htmlMode': {
     type: STRING,
     allowNull: false,
-    default: 'text/html',
+    defaultValue: 'text/html',
   },
   'js': {
     type: STRING,
@@ -196,7 +245,12 @@ App.init ({
   'jsMode': {
     type: STRING,
     allowNull: false,
-    default: 'text/javascript',
+    defaultValue: 'text/javascript',
+  },
+  'jsType': {
+    type: STRING,
+    allowNull: false,
+    defaultValue: 'text/javascript',
   },
   'css': {
     type: STRING,
@@ -205,7 +259,22 @@ App.init ({
   'cssMode': {
     type: STRING,
     allowNull: false,
-    default: 'text/css',
+    defaultValue: 'text/css',
+  },
+  'cssType': {
+    type: STRING,
+    allowNull: false,
+    defaultValue: 'text/css',
+  },
+  'links': {
+    type: TEXT,
+    allowNull: false,
+    defaultValue: '',
+  },
+  'scripts': {
+    type: TEXT,
+    allowNull: false,
+    defaultValue: '',
   },
 }, {
   sequelize: db
@@ -337,14 +406,28 @@ let app = express ()
       'id',
       'language',
       'charset',
+      'viewport',
+      'bodyClass',
       'title',
+      'description',
+      'keywords',
       'html',
       'htmlMode',
+      'jsType',
+      'cssType',
+      'links',
+      'scripts',
     ],
     where: {
       id: req.params.id,
       UserId: req.session.user.id,
-    }
+    },
+    include: [
+      {
+        association: 'User',
+        attributes: ['firstName', 'lastName']
+      }
+    ],
   });
   if (app == null) {
     req.sendStatus (404);
@@ -469,7 +552,7 @@ let app = express ()
 
 ;
 
-db.sync ({ force: true }).then (async function () {
+db.sync ({ force: false }).then (async function () {
 
   let su = await User.findByPk (1);
   if (su == null) {

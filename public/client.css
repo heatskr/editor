@@ -20,13 +20,14 @@ button,
 .actions,
 .form,
 .form input,
+.form textarea,
 .apps a,
 .material-icons
 {
   color: #dddddd;
 }
 
-iframe#previewFrame {
+#previewFrame, #previewFrame iframe {
   border: none;
   width: 100%;
   height: 100%;
@@ -48,8 +49,23 @@ iframe#previewFrame {
   /*border-radius: 3px;*/
 }
 
+.settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.forms {
+  flex: 1;
+  overflow: auto;
+}
+
 .form table {
   width: 100%;
+}
+
+.form {
+  font: small sans-serif;
 }
 
 .actions {
@@ -69,6 +85,13 @@ button {
   border: 1px solid #808080;
   width: 100%;
   box-sizing: border-box;
+}
+.form textarea {
+  background-color: transparent;
+  border: 1px solid #808080;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
 }
 .form select {
   border: 1px solid #808080;

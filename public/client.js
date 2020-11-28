@@ -151,14 +151,22 @@ function newModel () {
     id: null,
     name: `app-${dt}`,
     title: `App ${dt}`,
+    description: '',
+    keywords: '',
     language: 'en',
     charset: 'UTF-8',
+    viewport: '',
+    bodyClass: '',
     html: `// ${dt}\n`,
     js: `# ${dt}\n`,
     css: `// ${dt}\n`,
     htmlMode: 'text/x-pug',
     jsMode: 'text/coffeescript',
+    jsType: 'text/javascript',
     cssMode: 'text/x-styl',
+    cssType: 'text/css',
+    scripts: '',
+    links: '',
   };
 }
 
@@ -214,6 +222,7 @@ function refreshApps () {
         let res = await fetch (this.href);
         model = await res.json ();
         loadPage ();
+        previewPage ();
       })
       ;
       li.append (a);
@@ -221,13 +230,21 @@ function refreshApps () {
       ul.append (li);
     }
 
-    editors.name     = document.querySelector ('#nameEditor');
-    editors.title    = document.querySelector ('#titleEditor');
-    editors.language = document.querySelector ('#languageEditor');
-    editors.charset  = document.querySelector ('#charsetEditor');
-    editors.htmlMode = document.querySelector ('#htmlModeEditor');
-    editors.jsMode   = document.querySelector ('#jsModeEditor');
-    editors.cssMode  = document.querySelector ('#cssModeEditor');
+    editors.name        = document.querySelector ('#nameEditor');
+    editors.title       = document.querySelector ('#titleEditor');
+    editors.description = document.querySelector ('#descriptionEditor');
+    editors.keywords    = document.querySelector ('#keywordsEditor');
+    editors.language    = document.querySelector ('#languageEditor');
+    editors.charset     = document.querySelector ('#charsetEditor');
+    editors.viewport    = document.querySelector ('#viewportEditor');
+    editors.bodyClass   = document.querySelector ('#bodyClassEditor');
+    editors.htmlMode    = document.querySelector ('#htmlModeEditor');
+    editors.jsMode      = document.querySelector ('#jsModeEditor');
+    editors.cssMode     = document.querySelector ('#cssModeEditor');
+    editors.jsType      = document.querySelector ('#jsTypeEditor');
+    editors.cssType     = document.querySelector ('#cssTypeEditor');
+    editors.links       = document.querySelector ('#linksEditor');
+    editors.scripts     = document.querySelector ('#scriptsEditor');
 
     editors.htmlMode.addEventListener ('change', (event) => {
       editors.html.setOption ('mode', editors.htmlMode.value);
@@ -372,7 +389,7 @@ myLayout.registerComponent ('cssComponent', function (container, componentState)
 
 
 myLayout.registerComponent ('previewComponent', function (container, componentState) {
-  container.getElement ().html ('<iframe id="previewFrame"></iframe>');
+  container.getElement ().html ('<div id="previewFrame"></div>');
 });
 
 myLayout.registerComponent ('libraryComponent', function (container, componentState) {
@@ -381,8 +398,7 @@ myLayout.registerComponent ('libraryComponent', function (container, componentSt
 });
 
 myLayout.registerComponent ('settingsComponent', function (container, componentState) {
-  container.getElement ().html (`
-
+  container.getElement ().html (`<div class="settings">
 <div class="actions">
   <button id="btnRun" title="Run">
     <span class="material-icons">play_arrow</span>
@@ -404,57 +420,133 @@ myLayout.registerComponent ('settingsComponent', function (container, componentS
   </button>
 </div>
 
+<div class="forms">
 <fieldset class="form">
-<legend>Settings</legend>
-<table>
-<tr>
-<td>Name</td>
-<td><input id="nameEditor" value="${model.name}"/></td>
-</tr>
-<tr>
-<td>Title</td>
-<td><input id="titleEditor" value="${model.title}"/></td>
-</tr>
-<tr>
-<td>Language</td>
-<td><input id="languageEditor" value="${model.language}"/></td>
-</tr>
-<tr>
-<td>Charset</td>
-<td><input id="charsetEditor" value="${model.charset}"/></td>
-</tr>
-</table>
+  <legend>Header</legend>
+  <table>
+    <tr>
+      <td>Name</td>
+      <td><input id="nameEditor" value="${model.name}"/></td>
+    </tr>
+    <tr>
+      <td>Title</td>
+      <td><input id="titleEditor" value="${model.title}"/></td>
+    </tr>
+    <tr>
+      <td colspan="2">Description</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <textarea id="descriptionEditor">${model.description}</textarea>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">Keywords</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <textarea id="keywordsEditor">${model.keywords}</textarea>
+      </td>
+    </tr>
+  </table>
 </fieldset>
 
 <fieldset class="form">
-<legend>Mode</legend>
-<table>
-<tr>
-<td>Markup</td>
-<td><select id="htmlModeEditor">
-<option value="text/html">HTML</option>
-<option value="text/x-pug">Pug</option>
-<option value="text/markdown">Markdown</option>
-</select></td>
-</tr>
-<tr>
-<td>Script</td>
-<td><select id="jsModeEditor">
-<option value="text/javascript">JavaScript</option>
-<option value="text/coffeescript">CoffeeScript</option>
-</select></td>
-</tr>
-<tr>
-<td>Style</td>
-<td><select id="cssModeEditor">
-<option value="text/css">CSS</option>
-<option value="text/x-styl">Stylus</option>
-</select></td>
-</tr>
-</table>
+  <legend>Markup</legend>
+  <table>
+    <tr>
+      <td>Language</td>
+      <td><input id="languageEditor" value="${model.language}"/></td>
+    </tr>
+    <tr>
+      <td>Charset</td>
+      <td><input id="charsetEditor" value="${model.charset}"/></td>
+    </tr>
+    <tr>
+      <td>Viewport</td>
+      <td><input id="viewportEditor" value="${model.viewport}"/></td>
+    </tr>
+    <tr>
+      <td>Body class</td>
+      <td><input id="bodyClassEditor" value="${model.bodyClass}"/></td>
+    </tr>
+    <tr>
+      <td>Mode</td>
+      <td>
+        <select id="htmlModeEditor">
+        <option value="text/html">HTML</option>
+        <option value="text/x-pug">Pug</option>
+        <option value="text/markdown">Markdown</option>
+        </select>
+      </td>
+    </tr>
+  </table>
 </fieldset>
 
-`);
+<fieldset class="form">
+  <legend>Script</legend>
+  <table>
+    <tr>
+      <td>Mode</td>
+      <td>
+        <select id="jsModeEditor">
+          <option value="text/javascript">JavaScript</option>
+          <option value="text/coffeescript">CoffeeScript</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>Type</td>
+      <td>
+        <select id="jsTypeEditor">
+          <option value="text/javascript">Script</option>
+          <option value="module">Module</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">Imports</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <textarea id="scriptsEditor">${model.scripts}</textarea>
+      </td>
+    </tr>
+  </table>
+</fieldset>
+
+<fieldset class="form">
+  <legend>Style</legend>
+  <table>
+    <tr>
+      <td>Mode</td>
+      <td>
+        <select id="cssModeEditor">
+          <option value="text/css">CSS</option>
+          <option value="text/x-styl">Stylus</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td>Type</td>
+      <td>
+        <select id="cssTypeEditor">
+          <option value="text/css">CSS</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">Imports</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <textarea id="linksEditor">${model.links}</textarea>
+      </td>
+    </tr>
+  </table>
+</fieldset>
+</div>
+</div>`);
 
   requestAnimationFrame (function () {
     jQuery ('#btnRun').click ((event) => {
@@ -498,8 +590,11 @@ async function previewPage () {
   });
   let text = await res.text ();
 
-  let preview = document.querySelector ('#previewFrame');
-  let doc = preview.contentWindow.document;
+  let previewFrame = document.querySelector ('#previewFrame');
+  previewFrame.innerHTML = null;
+  let frame = document.createElement ('iframe');
+  previewFrame.appendChild (frame);
+  let doc = frame.contentWindow.document;
   doc.open ();
   doc.write (text);
   doc.close ();
@@ -515,14 +610,22 @@ function openPage () {
 function loadModel () {
   model.name = editors.name.value;
   model.title = editors.title.value;
+  model.description = editors.description.value;
+  model.keywords = editors.keywords.value;
   model.language = editors.language.value;
   model.charset = editors.charset.value;
+  model.viewport = editors.viewport.value;
+  model.bodyClass = editors.bodyClass.value;
   model.html = editors.html.getValue ();
   model.js = editors.js.getValue ();
   model.css = editors.css.getValue ();
   model.htmlMode = editors.htmlMode.value;
   model.jsMode = editors.jsMode.value;
   model.cssMode = editors.cssMode.value;
+  model.jsType = editors.jsType.value;
+  model.cssType = editors.cssType.value;
+  model.links = editors.links.value;
+  model.scripts = editors.scripts.value;
 }
 
 function savePage () {
@@ -585,8 +688,19 @@ function newPage () {
 function loadPage () {
   editors.name.value = model.name;
   editors.title.value = model.title;
+  editors.description.value = model.description;
+  editors.keywords.value = model.keywords;
   editors.language.value = model.language;
   editors.charset.value = model.charset;
+  editors.viewport.value = model.viewport;
+  editors.bodyClass.value = model.bodyClass;
+  editors.htmlMode.value = model.htmlMode;
+  editors.jsMode.value = model.jsMode;
+  editors.cssMode.value = model.cssMode;
+  editors.jsType.value = model.jsType;
+  editors.cssType.value = model.cssType;
+  editors.links.value = model.links;
+  editors.scripts.value = model.scripts;
 
   let htmlDoc = new CodeMirror.Doc (model.html, model.htmlMode);
   editors.html.swapDoc (htmlDoc);
@@ -596,10 +710,6 @@ function loadPage () {
 
   let cssDoc = new CodeMirror.Doc (model.css, model.cssMode);
   editors.css.swapDoc (cssDoc);
-
-  editors.htmlMode.value = model.htmlMode;
-  editors.jsMode.value = model.jsMode;
-  editors.cssMode.value = model.cssMode;
 }
 
 CodeMirror.commands.save = function (cm) {
