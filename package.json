@@ -9,7 +9,9 @@
     "codemirror": "^5.58.2",
     "coffeescript": "^2.5.1",
     "css2stylus": "^0.5.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "express-session": "^1.17.1",
     "golden-layout": "^1.5.9",
     "highlight.js": "^10.4.0",
     "html2jade": "^0.8.6",
@@ -24,7 +26,9 @@
     "requirejs": "^2.3.6",
     "requirejs-plugins": "^1.0.2",
     "sequelize": "^6.3.5",
+    "session-file-store": "^1.5.0",
     "sqlite3": "^5.0.0",
-    "stylus": "^0.54.8"
+    "stylus": "^0.54.8",
+    "uuid": "^8.3.1"
   }
 }

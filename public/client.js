@@ -396,9 +396,12 @@ myLayout.registerComponent ('settingsComponent', function (container, componentS
   <button id="btnNew" title="New">
     <span class="material-icons">note_add</span>
   </button>
-  <label>
-    <input type="checkbox"/> Auto
-  </label>
+  <button id="btnAuto" title="Auto">
+    <span class="material-icons">check</span>
+  </button>
+  <button id="btnLogOut" title="Log out">
+    <span class="material-icons">power_settings_new</span>
+  </button>
 </div>
 
 <fieldset class="form">
@@ -468,6 +471,14 @@ myLayout.registerComponent ('settingsComponent', function (container, componentS
 
     jQuery ('#btnNew').click ((event) => {
       newPage ();
+    });
+
+    jQuery ('#btnLogOut').click ((event) => {
+      fetch ('/login', {
+        method: 'delete'
+      }).then ((res) => {
+        location.href = '/login';
+      });
     });
   });
 

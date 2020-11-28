@@ -1,4 +1,9 @@
+require ('dotenv').config ();
+
+const crypto = require ('crypto');
 const express = require ("express");
+const ExpressSession = require ('express-session');
+const FileStore = require ('session-file-store') (ExpressSession);
 const Sequelize = require ('sequelize');
 const Pug = require ('pug');
 const hljs = require ('highlight.js');
@@ -27,11 +32,19 @@ const Stylus = require ('stylus');
 
 const { STRING, INTEGER, DECIMAL, DATE } = Sequelize.DataTypes;
 
-const db = new Sequelize ('sqlite://data.sqlite3', {
+const db = new Sequelize (process.env.DATABASE_URL, {
   define: {
     underscored: 'all'
   }
 });
+
+class User extends Sequelize.Model
+{
+  static sha1 (text) {
+    return crypto.createHmac ('sha1', process.env.SECRET)
+      .update (text).digest ('hex');
+  }
+};
 
 class App extends Sequelize.Model
 {
@@ -109,8 +122,8 @@ class App extends Sequelize.Model
     <head>
       <meta charset="${this.charset}"/>
       <title>${this.title}</title>
-      <script src="/requirejs/require.js"></script>
       ${this.styleTag}
+      <script type="text/javascript" src="/requirejs/require.js"></script>
     </head>
     <body>
       ${this.compileHTML ()}
@@ -120,6 +133,33 @@ class App extends Sequelize.Model
   }
 
 };
+
+User.init ({
+  'username': {
+    type: STRING,
+    allowNull: false,
+    unique: true
+  },
+  'password': {
+    type: STRING,
+    allowNull: false
+  },
+  'email': {
+    type: STRING,
+    allowNull: false,
+    unique: true
+  },
+  'firstName': {
+    type: STRING,
+    allowNull: false
+  },
+  'lastName': {
+    type: STRING,
+    allowNull: false
+  },
+}, {
+  sequelize: db
+});
 
 App.init ({
   'name': {
@@ -137,7 +177,8 @@ App.init ({
   },
   'charset': {
     type: STRING,
-    allowNull: true,
+    allowNull: false,
+    default: 'UFT-8',
   },
   'html': {
     type: STRING,
@@ -145,7 +186,8 @@ App.init ({
   },
   'htmlMode': {
     type: STRING,
-    allowNull: true,
+    allowNull: false,
+    default: 'text/html',
   },
   'js': {
     type: STRING,
@@ -153,7 +195,8 @@ App.init ({
   },
   'jsMode': {
     type: STRING,
-    allowNull: true,
+    allowNull: false,
+    default: 'text/javascript',
   },
   'css': {
     type: STRING,
@@ -161,32 +204,97 @@ App.init ({
   },
   'cssMode': {
     type: STRING,
-    allowNull: true,
+    allowNull: false,
+    default: 'text/css',
   },
 }, {
   sequelize: db
 });
 
+App.belongsTo (User);
+
 let app = express ()
 
 .set ('view engine', 'pug')
+// .set ('trust proxy', 1)
+
+.use (ExpressSession ({
+  store: new FileStore ({}),
+  secret: process.env.SESSION_SECRET,
+  // resave: true,
+  // saveUninitialized: true,
+  // cookie: { secure: true }
+}))
 
 .use (express.json ())
 .use (express.static ('public'))
 .use (express.static ('node_modules'))
 
+
+.use (/\/(apps|editor).{0,}/, async function (req, res, next) {
+  if (req.session.user) {
+    next ();
+    return;
+  }
+  res.redirect ('/login');
+})
+
 .get ('/', async function (req, res, next) {
+  if (req.session.user) {
+    res.redirect ('/editor');
+    return;
+  }
+  res.redirect ('/login');
+})
+
+.get ('/login', async function (req, res, next) {
+  res.render ('login');
+})
+
+.post ('/login', async function (req, res, next) {
+  let user = await User.findOne ({
+    where: {
+      [Sequelize.Op.or]: {
+        email: req.body.email,
+        username: req.body.email
+      },
+      password: User.sha1 (req.body.password)
+    }
+  });
+
+  if (user == null) {
+    res.status (422).json ({ status: 1 });
+    return;
+  }
+
+  req.session.user = user;
+
+  res.json ({ status: 0 });
+})
+
+.delete ('/login', async function (req, res, next) {
+  delete req.session.user;
+  res.json ({ status: 0 });
+})
+
+.get ('/editor', async function (req, res, next) {
   res.render ('editor');
 })
 
 .get ('/apps', async function (req, res, next) {
-  let apps = await App.findAll ();
+  let apps = await App.findAll ({
+    where: {
+      UserId: req.session.user.id
+    }
+  });
   res.json (apps);
 })
 
 .post ('/apps', async function (req, res, next) {
+  let app = App.build (req.body.app);
+  app.UserId = req.session.user.id;
   try {
-    let app = await App.create (req.body.app);
+    await app.save ();
     res.json (app);
   } catch (error) {
     res.status (422).json (error);
@@ -210,9 +318,13 @@ let app = express ()
     ],
     where: {
       id: req.params.id,
-      // UserId: req.session.user.id,
+      UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    req.sendStatus (404);
+    return;
+  }
   res.end (app.render ());
 })
 
@@ -221,9 +333,13 @@ let app = express ()
     attributes: ['css', 'cssMode'],
     where: {
       id: req.params.id,
-      // UserId: req.session.user.id,
+      UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    req.sendStatus (404);
+    return;
+  }
   res.type ('text/css').end (app.compileCSS ());
 })
 
@@ -235,6 +351,10 @@ let app = express ()
       // UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    req.sendStatus (404);
+    return;
+  }
   res.type ('text/css').end (app.compileCSS ());
 })
 
@@ -243,9 +363,13 @@ let app = express ()
     attributes: ['js', 'jsMode'],
     where: {
       id: req.params.id,
-      // UserId: req.session.user.id,
+      UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    req.sendStatus (404);
+    return;
+  }
   res.type ('text/javascript').end (app.compileJS ());
 })
 
@@ -269,9 +393,13 @@ let app = express ()
   let app = await App.findOne ({
     where: {
       id: req.params.id,
-      // UserId: req.session.user.id,
+      UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    res.sendStatus (404);
+    return;
+  }
   res.json (app);
 })
 
@@ -279,14 +407,20 @@ let app = express ()
   let app = await App.findOne ({
     where: {
       id: req.params.id,
-      // UserId: req.session.user.id,
+      UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    res.sendStatus (404);
+    return;
+  }
+  app.set (req.body.app);
+  app.UserId = req.session.user.id;
   try {
     app.compileHTML ();
     app.compileJS ();
     app.compileCSS ();
-    await app.update (req.body.app);
+    await app.save ();
     res.json (app);
   } catch (error) {
     res.status (422).end (error.toString ());
@@ -297,15 +431,31 @@ let app = express ()
   let app = await App.findOne ({
     where: {
       id: req.params.id,
-      // UserId: req.session.user.id,
+      UserId: req.session.user.id,
     }
   });
+  if (app == null) {
+    req.sendStatus (404);
+    return;
+  }
   await app.destroy ();
   res.json (app);
 })
 
 ;
 
-db.sync ().then (() => {
+db.sync ({ force: true }).then (async function () {
+
+  let su = await User.findByPk (1);
+  if (su == null) {
+    await User.create ({
+      username: 'admin',
+      email: 'admin@example.com',
+      password: User.sha1 ('admin'),
+      firstName: 'System',
+      lastName: 'Administrator',
+    });
+  }
+
   app.listen (process.env.PORT || 5000);
 });
