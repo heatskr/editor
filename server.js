@@ -306,6 +306,31 @@ let app = express ()
   res.end (app.render ());
 })
 
+.get ('/apps/export', async function (req, res, next) {
+  let apps = await App.findAll ({
+    where: {
+      UserId: req.session.user.id
+    }
+  });
+  res.json (apps);
+})
+
+.post ('/apps/import', async function (req, res, next) {
+  let logs = [];
+  for (let value of req.body) {
+    let app = App.build (value);
+    app.id = null;
+    app.UserId = req.session.user.id;
+    try {
+      await app.save ();
+      logs.push (`Created ${app.name}`);
+    } catch (error) {
+      logs.push (`${app.name}: ${error}`);
+    }
+  }
+  res.json (logs);
+})
+
 .get ('/apps/:id.html', async function (req, res, next) {
   let app = await App.findOne ({
     attributes: [
