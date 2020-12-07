@@ -288,11 +288,17 @@ let app = express ()
 // .set ('trust proxy', 1)
 
 .use (ExpressSession ({
+  name: 'editor.sid',
   store: new FileStore ({}),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  // cookie: { secure: true }
+  cookie: {
+    httpOnly: true,
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+    sameSite: true,
+    // secure: true
+  }
 }))
 
 .use (express.json ())
