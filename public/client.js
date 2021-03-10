@@ -712,7 +712,15 @@ function loadPage () {
   editors.css.swapDoc (cssDoc);
 }
 
+CodeMirror.commands.removeWhiteSpaces = function (cm) {
+  cm.doc.eachLine (function (line) {
+    line.text = line.text.trimRight ();
+    return false;
+  });
+};
+
 CodeMirror.commands.save = function (cm) {
+  CodeMirror.commands.removeWhiteSpaces (cm);
   savePage ();
 };
 
