@@ -7,7 +7,7 @@ Simple playground for web content. (WIP)
 Install
 
 Create a .env file with settings using uuid utility or
-just provide your own keys. Them run npm package installer.
+just provide your own keys. Then run npm package installer.
 
 ```sh
 echo SECRET=$(uuid) > .env
