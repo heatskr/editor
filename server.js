@@ -303,7 +303,7 @@ let app = express ()
 
 .use (express.json ())
 .use (express.static ('public'))
-.use (express.static ('node_modules'))
+.use (express.static (process.env.NODE_PATH || 'node_modules'))
 
 
 .use (/\/(apps|editor).{0,}/, async function (req, res, next) {
